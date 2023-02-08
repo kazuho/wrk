@@ -60,7 +60,6 @@ typedef struct connection {
     uint64_t pending;
     buffer headers;
     buffer body;
-    char buf[RECVBUF];
 } connection;
 
 #endif /* WRK_H */

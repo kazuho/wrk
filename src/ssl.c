@@ -45,9 +45,9 @@ status ssl_close(connection *c) {
     return OK;
 }
 
-status ssl_read(connection *c, size_t *n) {
+status ssl_read(connection *c, char *buf, size_t *n) {
     int r;
-    if ((r = SSL_read(c->ssl, c->buf, sizeof(c->buf))) <= 0) {
+    if ((r = SSL_read(c->ssl, buf, RECVBUF)) <= 0) {
         switch (SSL_get_error(c->ssl, r)) {
             case SSL_ERROR_WANT_READ:  return RETRY;
             case SSL_ERROR_WANT_WRITE: return RETRY;

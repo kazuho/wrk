@@ -14,8 +14,8 @@ status sock_close(connection *c) {
     return OK;
 }
 
-status sock_read(connection *c, size_t *n) {
-    ssize_t r = read(c->fd, c->buf, sizeof(c->buf));
+status sock_read(connection *c, char *buf, size_t *n) {
+    ssize_t r = read(c->fd, buf, RECVBUF);
     *n = (size_t) r;
     return r >= 0 ? OK : ERROR;
 }

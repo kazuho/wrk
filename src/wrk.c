@@ -425,16 +425,17 @@ static void socket_writeable(aeEventLoop *loop, int fd, void *data, int mask) {
 
 static void socket_readable(aeEventLoop *loop, int fd, void *data, int mask) {
     connection *c = data;
+    char buf[RECVBUF];
     size_t n;
 
     do {
-        switch (sock.read(c, &n)) {
+        switch (sock.read(c, buf, &n)) {
             case OK:    break;
             case ERROR: goto error;
             case RETRY: return;
         }
 
-        if (http_parser_execute(&c->parser, &parser_settings, c->buf, n) != n) goto error;
+        if (http_parser_execute(&c->parser, &parser_settings, buf, n) != n) goto error;
         if (n == 0 && !http_body_is_final(&c->parser)) goto error;
 
         c->thread->bytes += n;
