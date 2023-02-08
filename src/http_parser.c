@@ -2071,6 +2071,27 @@ http_should_keep_alive (const http_parser *parser)
   return !http_message_needs_eof(parser);
 }
 
+size_t
+http_parser_bytes_to_skip (const http_parser *parser, const http_parser_settings *settings)
+{
+    if (parser->state != s_body_identity)
+        return 0;
+    if (parser->content_length == ULLONG_MAX)
+        return 0;
+    if (settings->on_body != NULL)
+        return 0;
+    return parser->content_length <= SIZE_MAX ? parser->content_length - 1 : SIZE_MAX;
+}
+
+void
+http_parser_set_bytes_skipped (http_parser *parser, size_t n)
+{
+    assert(parser->state == s_body_identity);
+    assert(parser->content_length != ULLONG_MAX);
+    assert(parser->content_length > n);
+
+    parser->content_length -= n;
+}
 
 const char *
 http_method_str (enum http_method m)

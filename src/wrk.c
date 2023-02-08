@@ -1,5 +1,8 @@
 // Copyright (C) 2012 - Will Glozer.  All rights reserved.
-
+#define _GNU_SOURCE
+#include <assert.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include "wrk.h"
 #include "script.h"
 #include "main.h"
@@ -429,6 +432,28 @@ static void socket_readable(aeEventLoop *loop, int fd, void *data, int mask) {
     size_t n;
 
     do {
+        if (sock.read == sock_read) {
+            size_t skiplen = http_parser_bytes_to_skip(&c->parser, &parser_settings);
+            if (skiplen >= RECVBUF) {
+                static __thread int pipefds[2] = {-1, -1}, dev_null_fd;
+                if (pipefds[0] == -1) {
+                    int ret = pipe(pipefds);
+                    assert(ret == 0);
+                    dev_null_fd = open("/dev/null", O_WRONLY);
+                    assert(dev_null_fd != -1);
+                }
+                ssize_t ret = splice(fd, NULL, pipefds[1], NULL, skiplen, SPLICE_F_NONBLOCK);
+                if (ret < 0)
+                    goto error;
+                if (ret > 0) {
+                    splice(pipefds[0], NULL, dev_null_fd, NULL, ret, 0);
+                    http_parser_set_bytes_skipped(&c->parser, ret);
+                    n = ret;
+                    goto Next;
+                }
+            }
+        }
+
         switch (sock.read(c, buf, &n)) {
             case OK:    break;
             case ERROR: goto error;
@@ -438,6 +463,7 @@ static void socket_readable(aeEventLoop *loop, int fd, void *data, int mask) {
         if (http_parser_execute(&c->parser, &parser_settings, buf, n) != n) goto error;
         if (n == 0 && !http_body_is_final(&c->parser)) goto error;
 
+    Next:
         c->thread->bytes += n;
     } while (n == RECVBUF && sock.readable(c) > 0);
 

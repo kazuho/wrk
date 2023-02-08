@@ -402,6 +402,10 @@ size_t http_parser_execute(http_parser *parser,
  */
 int http_should_keep_alive(const http_parser *parser);
 
+size_t http_parser_bytes_to_skip(const http_parser *parser, const http_parser_settings *settings);
+
+void http_parser_set_bytes_skipped(http_parser *parser, size_t n);
+
 /* Returns a string version of the HTTP method. */
 const char *http_method_str(enum http_method m);
 
