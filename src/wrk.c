@@ -106,6 +106,7 @@ int main(int argc, char **argv) {
 
     for (uint64_t i = 0; i < cfg.threads; i++) {
         thread *t      = &threads[i];
+        t->thread_index = i;
         t->loop        = aeCreateEventLoop(10 + cfg.connections * 3);
         t->connections = cfg.connections / cfg.threads;
 
@@ -204,6 +205,13 @@ int main(int argc, char **argv) {
 
 void *thread_main(void *arg) {
     thread *thread = arg;
+
+    {
+        cpu_set_t cs;
+        CPU_ZERO(&cs);
+        CPU_SET(thread->thread_index, &cs);
+        pthread_setaffinity_np(pthread_self(), sizeof(cs), &cs);
+    }
 
     char *request = NULL;
     size_t length = 0;
