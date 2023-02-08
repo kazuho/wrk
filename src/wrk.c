@@ -251,6 +251,21 @@ static int connect_socket(thread *thread, connection *c) {
 
     fd = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
 
+    while (1) {
+        uint16_t port;
+        RAND_bytes((void *)&port, sizeof(port));
+        port |= 0x8000;
+        if (((port >> 8) ^ (port & 0xff)) % 6 != thread->thread_index)
+            continue;
+        struct sockaddr_in sin;
+        memset(&sin, 0, sizeof(sin));
+        sin.sin_family = AF_INET;
+        sin.sin_port = htons(port);
+        if (bind(fd, &sin, sizeof(sin)) == 0)
+            break;
+        perror("bind error");
+    }
+
     flags = fcntl(fd, F_GETFL, 0);
     fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 
